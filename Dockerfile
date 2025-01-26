@@ -10,8 +10,8 @@ RUN mvn clean package -DskipTests
 # Use JDK to run the built application
 FROM openjdk:17.0.1-jdk-slim
 
-# Copy the packaged jar from the build stage
-COPY --from=build /target/demo-bank-0.0.1-SNAPSHOT.jar demo.jar
+# Copy the packaged jar from the build stage (ensure the name matches pom.xml artifact)
+COPY --from=build target/demo-bank-0.0.1-SNAPSHOT.jar demo.jar
 
 # Expose the application port
 EXPOSE 8080
