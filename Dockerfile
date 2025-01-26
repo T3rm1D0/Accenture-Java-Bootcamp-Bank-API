@@ -11,7 +11,7 @@ RUN mvn clean package -DskipTests
 FROM openjdk:17.0.1-jdk-slim
 
 # Copy the packaged jar from the build stage
-COPY --from=build /target/bank-app-0.0.1-SNAPSHOT.jar demo.jar
+COPY --from=build /target/demo-bank-0.0.1-SNAPSHOT.jar demo.jar
 
 # Expose the application port
 EXPOSE 8080
