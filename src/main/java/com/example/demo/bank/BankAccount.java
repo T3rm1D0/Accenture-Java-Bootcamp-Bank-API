@@ -1,6 +1,16 @@
 package com.example.demo.bank;
 
-class BankAccount {
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+
+@Entity
+public class BankAccount {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     private double balance;
 
@@ -39,5 +49,13 @@ class BankAccount {
 
     public double getBalance() {
         return balance;
+    }
+
+    public void setBalance(double balance) {
+        this.balance = balance;
+    }
+
+    public Long getId() {
+        return id;
     }
 }
