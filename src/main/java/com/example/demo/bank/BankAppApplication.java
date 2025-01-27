@@ -4,22 +4,21 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
+@SpringBootApplication
 @RestController
 @RequestMapping("/api/accounts")
 public class BankAppApplication {
 
-    private final List<BankAccount> accounts = new ArrayList<>();
+    private final BankAccountRepository repository;
+
+    public BankAppApplication(BankAccountRepository repository) {
+        this.repository = repository;
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(BankAppApplication.class, args);
-    }
-
-    public BankAppApplication() {
-        loadAccountsFromFile();
     }
 
     // Display Options
@@ -35,19 +34,20 @@ public class BankAppApplication {
 
     // Create Account
     @PostMapping("/create")
-    public String createAccount() {
-        accounts.add(new BankAccount());
-        saveAccountsToFile();
-        return "Account created. Total accounts: " + accounts.size();
+    public String createAccount(@RequestParam(defaultValue = "0.0") double initialBalance) {
+        BankAccount newAccount = new BankAccount(initialBalance);
+        repository.save(newAccount);
+        return "Account created with ID: " + newAccount.getId();
     }
 
     // Deposit Money
     @PostMapping("/{id}/deposit")
-    public String deposit(@PathVariable int id, @RequestParam double amount) {
-        if (id > 0 && id <= accounts.size()) {
-            BankAccount account = accounts.get(id - 1);
+    public String deposit(@PathVariable Long id, @RequestParam double amount) {
+        Optional<BankAccount> accountOpt = repository.findById(id);
+        if (accountOpt.isPresent()) {
+            BankAccount account = accountOpt.get();
             account.deposit(amount);
-            saveAccountsToFile();
+            repository.save(account);
             return "Deposited " + amount + " to Account " + id;
         } else {
             return "Invalid account ID.";
@@ -56,12 +56,13 @@ public class BankAppApplication {
 
     // Withdraw Money
     @PostMapping("/{id}/withdraw")
-    public String withdraw(@PathVariable int id, @RequestParam double amount) {
-        if (id > 0 && id <= accounts.size()) {
-            BankAccount account = accounts.get(id - 1);
+    public String withdraw(@PathVariable Long id, @RequestParam double amount) {
+        Optional<BankAccount> accountOpt = repository.findById(id);
+        if (accountOpt.isPresent()) {
+            BankAccount account = accountOpt.get();
             try {
                 account.withdraw(amount);
-                saveAccountsToFile();
+                repository.save(account);
                 return "Withdrew " + amount + " from Account " + id;
             } catch (IllegalArgumentException e) {
                 return e.getMessage();
@@ -73,55 +74,31 @@ public class BankAppApplication {
 
     // Get Balance
     @GetMapping("/{id}/balance")
-    public String getBalance(@PathVariable int id) {
-        if (id > 0 && id <= accounts.size()) {
-            BankAccount account = accounts.get(id - 1);
-            return "Balance of Account " + id + ": " + account.getBalance();
-        } else {
-            return "Invalid account ID.";
-        }
+    public String getBalance(@PathVariable Long id) {
+        return repository.findById(id)
+                .map(account -> "Balance of Account " + id + ": " + account.getBalance())
+                .orElse("Invalid account ID.");
     }
 
     // Transfer Money
     @PostMapping("/{id}/transfer")
-    public String transfer(@PathVariable int id, @RequestParam int targetId, @RequestParam double amount) {
-        if (id > 0 && id <= accounts.size() && targetId > 0 && targetId <= accounts.size() && id != targetId) {
-            BankAccount sourceAccount = accounts.get(id - 1);
-            BankAccount targetAccount = accounts.get(targetId - 1);
+    public String transfer(@PathVariable Long id, @RequestParam Long targetId, @RequestParam double amount) {
+        Optional<BankAccount> sourceAccountOpt = repository.findById(id);
+        Optional<BankAccount> targetAccountOpt = repository.findById(targetId);
+
+        if (sourceAccountOpt.isPresent() && targetAccountOpt.isPresent() && !id.equals(targetId)) {
+            BankAccount sourceAccount = sourceAccountOpt.get();
+            BankAccount targetAccount = targetAccountOpt.get();
             try {
                 sourceAccount.transfer(targetAccount, amount);
-                saveAccountsToFile();
+                repository.save(sourceAccount);
+                repository.save(targetAccount);
                 return "Transferred " + amount + " from Account " + id + " to Account " + targetId;
             } catch (IllegalArgumentException e) {
                 return e.getMessage();
             }
         } else {
             return "Invalid account IDs.";
-        }
-    }
-
-    private void loadAccountsFromFile() {
-        File file = new File("accounts.txt");
-        if (file.exists()) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    double balance = Double.parseDouble(line.trim());
-                    accounts.add(new BankAccount(balance));
-                }
-            } catch (IOException | NumberFormatException e) {
-                System.out.println("Error loading accounts: " + e.getMessage());
-            }
-        }
-    }
-
-    private void saveAccountsToFile() {
-        try (PrintWriter writer = new PrintWriter("accounts.txt")) {
-            for (BankAccount account : accounts) {
-                writer.println(account.getBalance());
-            }
-        } catch (IOException e) {
-            System.out.println("Error saving accounts: " + e.getMessage());
         }
     }
 }
