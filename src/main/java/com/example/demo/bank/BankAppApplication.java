@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Optional;
 
-@SpringBootApplication
+
 @RestController
 @RequestMapping("/api/accounts")
 public class BankAppApplication {
