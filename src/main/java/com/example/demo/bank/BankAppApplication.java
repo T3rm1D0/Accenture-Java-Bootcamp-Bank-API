@@ -2,10 +2,6 @@ package com.example.demo.bank;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-import java.util.Optional;
-
 
 import java.util.Optional;
 
@@ -16,77 +12,128 @@ public class BankAppApplication {
     @Autowired
     private BankAccountRepository repository;
 
-    // Create Account
-    @PostMapping("/create")
-    public String createAccount() {
-        BankAccount newAccount = new BankAccount();
-        repository.save(newAccount);
-        return "Account created with ID: " + newAccount.getId();
-    }
+    @Autowired
+    private UserRepository userRepository;
 
-    // Deposit Money
-    @PostMapping("/{id}/deposit")
-    public String deposit(@PathVariable Long id, @RequestParam double amount) {
-        Optional<BankAccount> optionalAccount = repository.findById(id);
-        if (optionalAccount.isPresent()) {
-            BankAccount account = optionalAccount.get();
+    @Autowired
+    private AuthController authController;
+
+    // Deposit Money (Requires authentication)
+    @PostMapping("/{username}/{id}/deposit")
+    public String deposit(@PathVariable String username, @PathVariable Long id, @RequestParam double amount) {
+        if (!authController.isUserLoggedIn(username)) {
+            return "Unauthorized. Please log in.";
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return "User not found.";
+        }
+
+        User user = userOpt.get();
+        BankAccount account = user.getBankAccount();
+
+        if (account == null || !account.getId().equals(id)) {
+            return "You can only deposit to your own account.";
+        }
+
+        try {
             account.deposit(amount);
             repository.save(account);
-            return "Deposited " + amount + " to Account " + id;
-        } else {
-            return "Invalid account ID.";
+            return "Deposited " + amount + " to your account.";
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
         }
     }
 
-    // Withdraw Money
-    @PostMapping("/{id}/withdraw")
-    public String withdraw(@PathVariable Long id, @RequestParam double amount) {
-        Optional<BankAccount> optionalAccount = repository.findById(id);
-        if (optionalAccount.isPresent()) {
-            BankAccount account = optionalAccount.get();
-            try {
-                account.withdraw(amount);
-                repository.save(account);
-                return "Withdrew " + amount + " from Account " + id;
-            } catch (IllegalArgumentException e) {
-                return e.getMessage();
-            }
-        } else {
-            return "Invalid account ID.";
+    // Withdraw Money (Requires authentication)
+    @PostMapping("/{username}/{id}/withdraw")
+    public String withdraw(@PathVariable String username, @PathVariable Long id, @RequestParam double amount) {
+        if (!authController.isUserLoggedIn(username)) {
+            return "Unauthorized. Please log in.";
+        }
+
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return "User not found.";
+        }
+
+        User user = userOpt.get();
+        BankAccount account = user.getBankAccount();
+
+        if (account == null || !account.getId().equals(id)) {
+            return "You can only withdraw from your own account.";
+        }
+
+        try {
+            account.withdraw(amount);
+            repository.save(account);
+            return "Withdrew " + amount + " from your account.";
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
         }
     }
 
-    // Get Balance
-    @GetMapping("/{id}/balance")
-    public String getBalance(@PathVariable Long id) {
-        Optional<BankAccount> optionalAccount = repository.findById(id);
-        if (optionalAccount.isPresent()) {
-            BankAccount account = optionalAccount.get();
-            return "Balance of Account " + id + ": " + account.getBalance();
-        } else {
-            return "Invalid account ID.";
+    // Get Balance (Requires authentication)
+    @GetMapping("/{username}/balance")
+    public String getBalance(@PathVariable String username) {
+        if (!authController.isUserLoggedIn(username)) {
+            return "Unauthorized. Please log in.";
         }
+
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return "User not found.";
+        }
+
+        BankAccount account = userOpt.get().getBankAccount();
+        if (account == null) {
+            return "You do not have a bank account.";
+        }
+
+        return "Balance of your account: " + account.getBalance();
     }
 
-    // Transfer Money
-    @PostMapping("/{id}/transfer")
-    public String transfer(@PathVariable Long id, @RequestParam Long targetId, @RequestParam double amount) {
-        Optional<BankAccount> sourceAccountOpt = repository.findById(id);
-        Optional<BankAccount> targetAccountOpt = repository.findById(targetId);
+    // Transfer Money (Requires authentication & ownership check)
+    @PostMapping("/{username}/transfer")
+    public String transfer(
+            @PathVariable String username,
+            @RequestParam Long targetAccountId,
+            @RequestParam double amount) {
 
-        if (sourceAccountOpt.isPresent() && targetAccountOpt.isPresent()) {
-            BankAccount sourceAccount = sourceAccountOpt.get();
-            BankAccount targetAccount = targetAccountOpt.get();
-            try {
-                sourceAccount.transfer(targetAccount, amount);
-                repository.save(sourceAccount);
-                repository.save(targetAccount);
-                return "Transferred " + amount + " from Account " + id + " to Account " + targetId;
-            } catch (IllegalArgumentException e) {
-                return e.getMessage();
-            }
-        } else {
-            return "Invalid source or target account ID.";
+        if (!authController.isUserLoggedIn(username)) {
+            return "Unauthorized. Please log in.";
+        }
+
+        // Find the logged-in user's account
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return "User not found.";
+        }
+
+        User user = userOpt.get();
+        BankAccount sourceAccount = user.getBankAccount();
+
+        if (sourceAccount == null) {
+            return "You don't have a bank account.";
+        }
+
+        // Check if the target account exists
+        Optional<BankAccount> targetAccountOpt = repository.findById(targetAccountId);
+        if (targetAccountOpt.isEmpty()) {
+            return "Target account not found.";
+        }
+
+        BankAccount targetAccount = targetAccountOpt.get();
+
+        // Perform the transfer
+        try {
+            sourceAccount.transfer(targetAccount, amount);
+            repository.save(sourceAccount);
+            repository.save(targetAccount);
+            return "Transferred " + amount + " from your account to Account ID: " + targetAccountId;
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
         }
     }
 }
