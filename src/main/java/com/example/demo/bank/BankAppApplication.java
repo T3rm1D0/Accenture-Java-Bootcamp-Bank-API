@@ -171,7 +171,7 @@ public class BankAppApplication {
         }
 
         // Prepare the request to the recipient's API
-        String recipientApiUrl = "http://localhost:8080/swagger-ui/index.html#/bank-app-application/externalTransfer"; // Replace with actual URL
+        String recipientApiUrl = "https://springboot-render-2-c5m2.onrender.com/swagger-ui/index.html#/bank-app-application/externalTransfer"; // Replace with actual URL
         ExternalTransferRequest transferRequest = new ExternalTransferRequest();
         transferRequest.setFromAccountNumber(user.getUniqueId());
         transferRequest.setToAccountNumber(toAccountNumber);
