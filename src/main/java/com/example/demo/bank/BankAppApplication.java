@@ -2,6 +2,7 @@ package com.example.demo.bank;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Optional;
 
@@ -18,9 +19,12 @@ public class BankAppApplication {
     @Autowired
     private AuthController authController;
 
+    @Autowired
+    private RestTemplate restTemplate;
+
     // Deposit Money (Requires authentication)
-    @PostMapping("/{username}/{id}/deposit")
-    public String deposit(@PathVariable String username, @PathVariable Long id, @RequestParam double amount) {
+    @PostMapping("/deposit")
+    public String deposit(@RequestParam String username, @RequestParam Long id, @RequestParam double amount) {
         if (!authController.isUserLoggedIn(username)) {
             return "Unauthorized. Please log in.";
         }
@@ -47,8 +51,8 @@ public class BankAppApplication {
     }
 
     // Withdraw Money (Requires authentication)
-    @PostMapping("/{username}/{id}/withdraw")
-    public String withdraw(@PathVariable String username, @PathVariable Long id, @RequestParam double amount) {
+    @PostMapping("/withdraw")
+    public String withdraw(@RequestParam String username, @RequestParam Long id, @RequestParam double amount) {
         if (!authController.isUserLoggedIn(username)) {
             return "Unauthorized. Please log in.";
         }
@@ -75,8 +79,8 @@ public class BankAppApplication {
     }
 
     // Get Balance (Requires authentication)
-    @GetMapping("/{username}/balance")
-    public String getBalance(@PathVariable String username) {
+    @GetMapping("/balance")
+    public String getBalance(@RequestParam String username) {
         if (!authController.isUserLoggedIn(username)) {
             return "Unauthorized. Please log in.";
         }
@@ -94,10 +98,10 @@ public class BankAppApplication {
         return "Balance of your account: " + account.getBalance();
     }
 
-    // Transfer Money (Requires authentication & ownership check)
-    @PostMapping("/{username}/transfer")
-    public String transfer(
-            @PathVariable String username,
+    // Internal Transfer Money (Requires authentication & ownership check)
+    @PostMapping("/transfer/internal")
+    public String internalTransfer(
+            @RequestParam String username,
             @RequestParam Long targetAccountId,
             @RequestParam double amount) {
 
@@ -134,6 +138,55 @@ public class BankAppApplication {
             return "Transferred " + amount + " from your account to Account ID: " + targetAccountId;
         } catch (IllegalArgumentException e) {
             return e.getMessage();
+        }
+    }
+
+    // External Transfer Money (Requires authentication)
+    @PostMapping("/transfer/external")
+    public String externalTransfer(
+            @RequestParam String username,
+            @RequestParam String toAccountNumber,
+            @RequestParam double amount) {
+
+        if (!authController.isUserLoggedIn(username)) {
+            return "Unauthorized. Please log in.";
+        }
+
+        // Find the logged-in user's account
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) {
+            return "User not found.";
+        }
+
+        User user = userOpt.get();
+        BankAccount sourceAccount = user.getBankAccount();
+
+        if (sourceAccount == null) {
+            return "You don't have a bank account.";
+        }
+
+        // Check if the sender has enough balance
+        if (sourceAccount.getBalance() < amount) {
+            return "Insufficient balance.";
+        }
+
+        // Prepare the request to the recipient's API
+        String recipientApiUrl = "http://localhost:8080/swagger-ui/index.html#/bank-app-application/externalTransfer"; // Replace with actual URL
+        ExternalTransferRequest transferRequest = new ExternalTransferRequest();
+        transferRequest.setFromAccountNumber(user.getUniqueId());
+        transferRequest.setToAccountNumber(toAccountNumber);
+        transferRequest.setAmount(amount);
+
+        // Send the request to the recipient's API
+        String response = restTemplate.postForObject(recipientApiUrl, transferRequest, String.class);
+
+        // If the recipient's API confirms the transfer, deduct the amount from the sender's account
+        if (response != null && response.contains("success")) {
+            sourceAccount.withdraw(amount);
+            repository.save(sourceAccount);
+            return "Transfer successful: " + response;
+        } else {
+            return "Transfer failed: " + response;
         }
     }
 }

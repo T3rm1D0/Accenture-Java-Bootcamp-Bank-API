@@ -5,6 +5,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.dao.DataIntegrityViolationException;
 import java.util.Optional;
+import java.util.Random;
 
 @Service
 public class UserService {
@@ -18,7 +19,7 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public String registerUser(String username, String password, String email) {
+    public String registerUser(String name, String surname, String username, String password, String email) {
         try {
             if (userRepository.findByUsername(username).isPresent()) {
                 return "Username already exists.";
@@ -27,12 +28,16 @@ public class UserService {
                 return "Email already exists.";
             }
 
+            // Generate unique ID
+            String uniqueId = generateUniqueId(name, surname);
+
             // Create a new bank account for the user
             BankAccount bankAccount = new BankAccount();
             bankAccountRepository.save(bankAccount);
 
             // Create a new user
             User user = new User();
+            user.setUniqueId(uniqueId);
             user.setUsername(username);
             user.setPassword(passwordEncoder.encode(password));
             user.setEmail(email);
@@ -40,12 +45,29 @@ public class UserService {
 
             userRepository.save(user);
 
-            return "User registered successfully! Bank Account ID: " + bankAccount.getId();
+            return "User registered successfully! Unique ID: " + uniqueId;
         } catch (DataIntegrityViolationException e) {
             return "Error: Username or email already exists.";
         } catch (Exception e) {
             return "Error: Unable to register user.";
         }
+    }
+
+    private String generateUniqueId(String name, String surname) {
+        String namePart = name.substring(0, Math.min(name.length(), 3)).toUpperCase();
+        String surnamePart = surname.substring(0, Math.min(surname.length(), 3)).toUpperCase();
+        String randomPart = generateRandomString(12);
+        return namePart + surnamePart + "_" + randomPart;
+    }
+
+    private String generateRandomString(int length) {
+        String characters = "0123456789abcdefghijklmnopqrstuvwxyz";
+        Random random = new Random();
+        StringBuilder sb = new StringBuilder(length);
+        for (int i = 0; i < length; i++) {
+            sb.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        return sb.toString();
     }
 
     public String authenticateUser(String username, String password) {

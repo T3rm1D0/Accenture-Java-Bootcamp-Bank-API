@@ -17,6 +17,8 @@ public class AuthController {
 
     @PostMapping("/register")
     public String register(
+            @RequestParam String name,
+            @RequestParam String surname,
             @RequestParam String username,
             @RequestParam String password,
             @RequestParam String email) {
@@ -31,7 +33,7 @@ public class AuthController {
             return "Invalid email format.";
         }
 
-        return userService.registerUser(username, password, email);
+        return userService.registerUser(name, surname, username, password, email);
     }
 
     @PostMapping("/login")
