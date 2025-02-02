@@ -1,12 +1,12 @@
-package com.example.demo.bank.main;
+package com.example.demo.bank;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class DemoBankApplication {
+public class Main {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DemoBankApplication.class, args);
+		SpringApplication.run(Main.class, args);
 	}
 }
