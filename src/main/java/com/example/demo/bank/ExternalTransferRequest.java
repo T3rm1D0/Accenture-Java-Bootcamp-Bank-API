@@ -19,17 +19,14 @@ public class ExternalTransferRequest {
     @Min(value = 1, message = "Amount must be greater than zero")
     private Double amount;
 
-    // Default constructor
     public ExternalTransferRequest() {}
 
-    // Parameterized constructor
     public ExternalTransferRequest(String fromAccountNumber, String toAccountNumber, Double amount) {
         this.fromAccountNumber = fromAccountNumber;
         this.toAccountNumber = toAccountNumber;
         this.amount = amount;
     }
 
-    // Getters and Setters
     public String getFromAccountNumber() { return fromAccountNumber; }
     public void setFromAccountNumber(String fromAccountNumber) { this.fromAccountNumber = fromAccountNumber; }
 

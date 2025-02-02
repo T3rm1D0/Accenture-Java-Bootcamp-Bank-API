@@ -15,10 +15,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> cors.configure(http))  // Enable CORS
-                .csrf(csrf -> csrf.disable())  // Disable CSRF for simplicity
+                .cors(cors -> cors.configure(http))
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // Allow all requests
+                        .anyRequest().permitAll()
                 );
 
         return http.build();
@@ -29,17 +29,16 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-    // Add this bean to configure CORS globally
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**") // Allow all endpoints
-                        .allowedOrigins("https://springboot-render-2-c5m2.onrender.com", "http://13.60.62.171") // Allow these origins
-                        .allowedMethods("GET", "POST", "PUT", "DELETE") // Allow these HTTP methods
-                        .allowedHeaders("*") // Allow all headers
-                        .allowCredentials(true); // Allow credentials (e.g., cookies)
+                registry.addMapping("/**")
+                        .allowedOrigins("https://springboot-render-2-c5m2.onrender.com", "http://13.60.62.171")
+                        .allowedMethods("GET", "POST", "PUT", "DELETE")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
             }
         };
     }

@@ -166,21 +166,17 @@ public class BankAppController {
             return "Insufficient balance.";
         }
 
-        // Prepare the external transfer request
         ExternalTransferRequest transferRequest = new ExternalTransferRequest();
-        transferRequest.setFromAccountNumber(user.getUniqueId()); // Use the user's unique ID as the sender account number
+        transferRequest.setFromAccountNumber(user.getUniqueId());
         transferRequest.setToAccountNumber(toAccountNumber);
         transferRequest.setAmount(amount);
 
-        // External API URL (replace with the actual URL)
         String externalApiUrl = "https://springboot-render-2-c5m2.onrender.com/swagger-ui/index.html#/bank-app-controller/externalTransfer";
 
-        // Set up headers and request entity
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<ExternalTransferRequest> request = new HttpEntity<>(transferRequest, headers);
 
-        // Send the request to the external API
         ResponseEntity<String> response;
         try {
             response = restTemplate.exchange(externalApiUrl, HttpMethod.POST, request, String.class);
@@ -188,9 +184,7 @@ public class BankAppController {
             return "Transfer failed: " + e.getMessage();
         }
 
-        // Handle the response
         if (response.getStatusCode().is2xxSuccessful()) {
-            // Deduct the amount from the source account
             sourceAccount.withdraw(amount);
             repository.save(sourceAccount);
             return "Transfer successful: " + response.getBody();
@@ -201,7 +195,6 @@ public class BankAppController {
 
     @PostMapping("/transfer/receive")
     public ResponseEntity<String> receiveExternalTransfer(@RequestBody ExternalTransferRequest transferRequest) {
-        // Validate the recipient's account
         Optional<BankAccount> recipientAccountOpt = repository.findByBankaccountAddress(transferRequest.getToAccountNumber());
         if (recipientAccountOpt.isEmpty()) {
             return ResponseEntity.badRequest().body("Recipient account not found.");
@@ -209,7 +202,6 @@ public class BankAppController {
 
         BankAccount recipientAccount = recipientAccountOpt.get();
 
-        // Deposit the amount into the recipient's account
         try {
             recipientAccount.deposit(transferRequest.getAmount());
             repository.save(recipientAccount);

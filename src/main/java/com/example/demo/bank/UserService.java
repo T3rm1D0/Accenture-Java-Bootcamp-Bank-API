@@ -35,7 +35,7 @@ public class UserService {
             String uniqueId = generateUniqueId(name, surname);
 
             BankAccount bankAccount = new BankAccount();
-            bankAccount. setBankaccountAddress(uniqueId); // Set the bankaccount_address
+            bankAccount. setBankaccountAddress(uniqueId);
             bankAccountRepository.save(bankAccount);
 
             User user = new User();
