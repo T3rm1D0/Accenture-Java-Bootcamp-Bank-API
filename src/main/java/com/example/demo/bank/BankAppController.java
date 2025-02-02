@@ -173,7 +173,7 @@ public class BankAppController {
         transferRequest.setAmount(amount);
 
         // External API URL (replace with the actual URL)
-        String externalApiUrl = "https://springboot-render-2-c5m2.onrender.com/api/v1/accounts/transfer/external";
+        String externalApiUrl = "https://springboot-render-2-c5m2.onrender.com/swagger-ui/index.html#/bank-app-controller/externalTransfer";
 
         // Set up headers and request entity
         HttpHeaders headers = new HttpHeaders();
