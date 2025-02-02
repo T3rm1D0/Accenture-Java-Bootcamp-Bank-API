@@ -1,5 +1,9 @@
 package com.example.demo.bank;
 
+import com.example.demo.bank.BankAccount;
+import com.example.demo.bank.User;
+import com.example.demo.bank.BankAccountRepository;
+import com.example.demo.bank.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,14 +32,12 @@ public class UserService {
                 return "Email already exists.";
             }
 
-            // Generate unique ID
             String uniqueId = generateUniqueId(name, surname);
 
-            // Create a new bank account for the user
             BankAccount bankAccount = new BankAccount();
+            bankAccount. setBankaccountAddress(uniqueId); // Set the bankaccount_address
             bankAccountRepository.save(bankAccount);
 
-            // Create a new user
             User user = new User();
             user.setUniqueId(uniqueId);
             user.setUsername(username);
@@ -84,12 +86,10 @@ public class UserService {
         if (userOptional.isPresent()) {
             User user = userOptional.get();
 
-            // Delete associated bank account
             if (user.getBankAccount() != null) {
                 bankAccountRepository.delete(user.getBankAccount());
             }
 
-            // Delete user account
             userRepository.delete(user);
             return "User and associated bank account deleted successfully.";
         }

@@ -1,5 +1,6 @@
 package com.example.demo.bank;
 
+import com.example.demo.bank.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,7 +14,7 @@ public class AuthController {
     @Autowired
     private UserService userService;
 
-    private Map<String, String> sessions = new HashMap<>(); // Store logged-in users' sessions
+    private Map<String, String> sessions = new HashMap<>();
 
     @PostMapping("/register")
     public String register(
@@ -42,7 +43,7 @@ public class AuthController {
 
         Map<String, String> response = new HashMap<>();
         if (result.equals("Login successful!")) {
-            String token = username + "_token";  // Generate a simple token
+            String token = username + "_token";
             sessions.put(username, token);
             response.put("message", "Login successful!");
             response.put("token", token);

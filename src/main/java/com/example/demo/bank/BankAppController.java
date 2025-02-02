@@ -1,6 +1,12 @@
 package com.example.demo.bank;
 
+import com.example.demo.bank.ExternalTransferRequest;
+import com.example.demo.bank.BankAccount;
+import com.example.demo.bank.User;
+import com.example.demo.bank.BankAccountRepository;
+import com.example.demo.bank.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -8,7 +14,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/accounts")
-public class BankAppApplication {
+public class BankAppController {
 
     @Autowired
     private BankAccountRepository repository;
@@ -22,9 +28,8 @@ public class BankAppApplication {
     @Autowired
     private RestTemplate restTemplate;
 
-    // Deposit Money (Requires authentication)
     @PostMapping("/deposit")
-    public String deposit(@RequestParam String username, @RequestParam Long id, @RequestParam double amount) {
+    public String deposit(@RequestParam String username, @RequestParam String bankaccountAddress, @RequestParam double amount) {
         if (!authController.isUserLoggedIn(username)) {
             return "Unauthorized. Please log in.";
         }
@@ -37,7 +42,7 @@ public class BankAppApplication {
         User user = userOpt.get();
         BankAccount account = user.getBankAccount();
 
-        if (account == null || !account.getId().equals(id)) {
+        if (account == null || !account.getBankaccountAddress().equals(bankaccountAddress)) {
             return "You can only deposit to your own account.";
         }
 
@@ -50,9 +55,8 @@ public class BankAppApplication {
         }
     }
 
-    // Withdraw Money (Requires authentication)
     @PostMapping("/withdraw")
-    public String withdraw(@RequestParam String username, @RequestParam Long id, @RequestParam double amount) {
+    public String withdraw(@RequestParam String username, @RequestParam String bankaccountAddress, @RequestParam double amount) {
         if (!authController.isUserLoggedIn(username)) {
             return "Unauthorized. Please log in.";
         }
@@ -65,7 +69,7 @@ public class BankAppApplication {
         User user = userOpt.get();
         BankAccount account = user.getBankAccount();
 
-        if (account == null || !account.getId().equals(id)) {
+        if (account == null || !account.getBankaccountAddress().equals(bankaccountAddress)) {
             return "You can only withdraw from your own account.";
         }
 
@@ -78,7 +82,6 @@ public class BankAppApplication {
         }
     }
 
-    // Get Balance (Requires authentication)
     @GetMapping("/balance")
     public String getBalance(@RequestParam String username) {
         if (!authController.isUserLoggedIn(username)) {
@@ -98,18 +101,16 @@ public class BankAppApplication {
         return "Balance of your account: " + account.getBalance();
     }
 
-    // Internal Transfer Money (Requires authentication & ownership check)
     @PostMapping("/transfer/internal")
     public String internalTransfer(
             @RequestParam String username,
-            @RequestParam Long targetAccountId,
+            @RequestParam String targetBankAccountAddress,
             @RequestParam double amount) {
 
         if (!authController.isUserLoggedIn(username)) {
             return "Unauthorized. Please log in.";
         }
 
-        // Find the logged-in user's account
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return "User not found.";
@@ -122,26 +123,23 @@ public class BankAppApplication {
             return "You don't have a bank account.";
         }
 
-        // Check if the target account exists
-        Optional<BankAccount> targetAccountOpt = repository.findById(targetAccountId);
+        Optional<BankAccount> targetAccountOpt = repository.findByBankaccountAddress(targetBankAccountAddress);
         if (targetAccountOpt.isEmpty()) {
             return "Target account not found.";
         }
 
         BankAccount targetAccount = targetAccountOpt.get();
 
-        // Perform the transfer
         try {
             sourceAccount.transfer(targetAccount, amount);
             repository.save(sourceAccount);
             repository.save(targetAccount);
-            return "Transferred " + amount + " from your account to Account ID: " + targetAccountId;
+            return "Transferred " + amount + " from your account to Account: " + targetBankAccountAddress;
         } catch (IllegalArgumentException e) {
             return e.getMessage();
         }
     }
 
-    // External Transfer Money (Requires authentication)
     @PostMapping("/transfer/external")
     public String externalTransfer(
             @RequestParam String username,
@@ -152,7 +150,6 @@ public class BankAppApplication {
             return "Unauthorized. Please log in.";
         }
 
-        // Find the logged-in user's account
         Optional<User> userOpt = userRepository.findByUsername(username);
         if (userOpt.isEmpty()) {
             return "User not found.";
@@ -165,28 +162,60 @@ public class BankAppApplication {
             return "You don't have a bank account.";
         }
 
-        // Check if the sender has enough balance
         if (sourceAccount.getBalance() < amount) {
             return "Insufficient balance.";
         }
 
-        // Prepare the request to the recipient's API
-        String recipientApiUrl = "https://springboot-render-2-c5m2.onrender.com/swagger-ui/index.html#/bank-app-application/externalTransfer"; // Replace with actual URL
+        // Prepare the external transfer request
         ExternalTransferRequest transferRequest = new ExternalTransferRequest();
-        transferRequest.setFromAccountNumber(user.getUniqueId());
+        transferRequest.setFromAccountNumber(user.getUniqueId()); // Use the user's unique ID as the sender account number
         transferRequest.setToAccountNumber(toAccountNumber);
         transferRequest.setAmount(amount);
 
-        // Send the request to the recipient's API
-        String response = restTemplate.postForObject(recipientApiUrl, transferRequest, String.class);
+        // External API URL (replace with the actual URL)
+        String externalApiUrl = "https://springboot-render-2-c5m2.onrender.com/api/v1/accounts/transfer/external";
 
-        // If the recipient's API confirms the transfer, deduct the amount from the sender's account
-        if (response != null && response.contains("success")) {
+        // Set up headers and request entity
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<ExternalTransferRequest> request = new HttpEntity<>(transferRequest, headers);
+
+        // Send the request to the external API
+        ResponseEntity<String> response;
+        try {
+            response = restTemplate.exchange(externalApiUrl, HttpMethod.POST, request, String.class);
+        } catch (Exception e) {
+            return "Transfer failed: " + e.getMessage();
+        }
+
+        // Handle the response
+        if (response.getStatusCode().is2xxSuccessful()) {
+            // Deduct the amount from the source account
             sourceAccount.withdraw(amount);
             repository.save(sourceAccount);
-            return "Transfer successful: " + response;
+            return "Transfer successful: " + response.getBody();
         } else {
-            return "Transfer failed: " + response;
+            return "Transfer failed: " + response.getBody();
+        }
+    }
+
+    @PostMapping("/transfer/receive")
+    public ResponseEntity<String> receiveExternalTransfer(@RequestBody ExternalTransferRequest transferRequest) {
+        // Validate the recipient's account
+        Optional<BankAccount> recipientAccountOpt = repository.findByBankaccountAddress(transferRequest.getToAccountNumber());
+        if (recipientAccountOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Recipient account not found.");
+        }
+
+        BankAccount recipientAccount = recipientAccountOpt.get();
+
+        // Deposit the amount into the recipient's account
+        try {
+            recipientAccount.deposit(transferRequest.getAmount());
+            repository.save(recipientAccount);
+            return ResponseEntity.ok("Transfer received successfully. New balance: " + recipientAccount.getBalance());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid transfer amount.");
         }
     }
 }

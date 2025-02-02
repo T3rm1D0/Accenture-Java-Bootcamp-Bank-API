@@ -1,9 +1,12 @@
 package com.example.demo.bank;
 
 import jakarta.persistence.Entity;
+
+
+import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.Column;
 
 @Entity
 public class BankAccount {
@@ -11,6 +14,9 @@ public class BankAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "bankaccount_address", unique = true, nullable = false)
+    private String bankaccountAddress;
 
     private double balance;
 
@@ -58,4 +64,18 @@ public class BankAccount {
     public Long getId() {
         return id;
     }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getBankaccountAddress() {
+        return bankaccountAddress;
+    }
+
+    public void setBankaccountAddress(String bankaccountAddress) {
+        this.bankaccountAddress = bankaccountAddress;
+    }
+
+
 }
