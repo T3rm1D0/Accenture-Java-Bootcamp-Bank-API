@@ -1,4 +1,4 @@
-package com.example.demo.bank;
+package com.example.demo.bank.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;

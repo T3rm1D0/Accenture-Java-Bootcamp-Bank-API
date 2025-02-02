@@ -1,6 +1,6 @@
-package com.example.demo.bank;
+package com.example.demo.bank.controller;
 
-import com.example.demo.bank.UserService;
+import com.example.demo.bank.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 

@@ -1,10 +1,10 @@
-package com.example.demo.bank;
+package com.example.demo.bank.controller;
 
-import com.example.demo.bank.ExternalTransferRequest;
-import com.example.demo.bank.BankAccount;
-import com.example.demo.bank.User;
-import com.example.demo.bank.BankAccountRepository;
-import com.example.demo.bank.UserRepository;
+import com.example.demo.bank.dto.ExternalTransferRequest;
+import com.example.demo.bank.entity.BankAccount;
+import com.example.demo.bank.entity.User;
+import com.example.demo.bank.repository.BankAccountRepository;
+import com.example.demo.bank.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

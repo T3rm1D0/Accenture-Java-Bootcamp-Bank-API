@@ -1,6 +1,6 @@
-package com.example.demo.bank;
+package com.example.demo.bank.repository;
 
-import com.example.demo.bank.User;
+import com.example.demo.bank.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 

@@ -1,9 +1,9 @@
-package com.example.demo.bank;
+package com.example.demo.bank.services;
 
-import com.example.demo.bank.BankAccount;
-import com.example.demo.bank.User;
-import com.example.demo.bank.BankAccountRepository;
-import com.example.demo.bank.UserRepository;
+import com.example.demo.bank.entity.BankAccount;
+import com.example.demo.bank.entity.User;
+import com.example.demo.bank.repository.BankAccountRepository;
+import com.example.demo.bank.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

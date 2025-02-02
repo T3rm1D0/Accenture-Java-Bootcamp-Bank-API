@@ -1,4 +1,4 @@
-package com.example.demo.bank;
+package com.example.demo.bank.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
